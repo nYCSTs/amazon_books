@@ -40,13 +40,6 @@ def get_name(soup):
 def url_fixer(url):
 	index = url.find('dp')
 	return 'https://www.amazon.com.br/' + url[index:index + 13]
-
-def file_check():
-	try:
-		open("links.txt", mode = 'r')
-		return 1
-	except:
-		return 0
 	
 VERSION = 1.5
 link_list = []
@@ -56,11 +49,13 @@ qnt_items = 5
 
 print(VERSION)
 while True:
-	opc = int(input('\t1) Checar por disponibilidade.\n\t2) Adicionar novo link\n\t3) Remover link\n\t4) Pesquisar por nome\n\t5) Mostrar toda lista\n\t6) Limpar lista\n\t7) Configurações\n\t8) Fechar\n>> '))
+	opc = int(input('\n\t1) Checar por disponibilidade.\n\t2) Adicionar novo link\n\t3) Remover link\n\t4) Pesquisar por nome\n\t5) Mostrar toda lista\n\t6) Limpar lista\n\t7) Configurações\n\t8) Fechar\n>> '))
 
 	#checar por disponibilidade 
 	if (opc == 1):
-		if (file_check):
+		try:
+			open('links.txt', mode = 'r')
+		except:
 			print("Arquivo 'links.txt' nao existe. Para criar acesse primeiramente a opção 2) ou 4)")
 		else:
 			with open("links.txt", mode = 'r') as file:
@@ -97,7 +92,9 @@ while True:
 
 	#remover link
 	elif (opc == 3):
-		if (file_check):
+		try:
+			open('links.txt', mode = 'r')
+		except:
 			print("Arquivo 'links.txt' nao existe. Para criar acesse primeiramente a opção 2) ou 4)")
 		else:
 			with open("links.txt", "r") as file:
@@ -160,7 +157,9 @@ while True:
 
 	#mostrar toda lista
 	elif (opc == 5):
-		if (file_check):
+		try:
+			open('links.txt', mode = 'r')
+		except:
 			print("Arquivo 'links.txt' nao existe. Para criar acesse primeiramente a opção 2) ou 4)")
 		else:
 			with open("links.txt", mode = 'r') as file:
@@ -176,6 +175,7 @@ while True:
 	elif (opc == 6):
 		with open('links.txt', mode = 'w') as file:
 			file.write('')
+		print('A lista foi limpa')
 
 	#configuracoes
 	elif(opc == 7):
