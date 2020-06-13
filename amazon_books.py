@@ -1,12 +1,11 @@
-
 import requests
 from bs4 import BeautifulSoup
 
 # REFERENCIA: https://medium.com/@tusharseth93/scraping-the-web-a-fast-and-simple-way-to-scrape-amazon-b3d6d74d649f
-# VERSAO 1.4
+# VERSAO 1.5
 
 proxies = {
-	'http':'http://142.93.57.37:80',
+	'http':'142.93.57.37:80',
 	'http':'107.191.41.188:8080',
 	'http':'104.45.11.234:3128',
 	'http':'163.172.189.32:8811',
@@ -16,151 +15,176 @@ proxies = {
 	'http':'138.201.106.88:8080',
 	'http':'165.227.87.203:3128',
 	'http':'173.212.202.65:80',
-	'http':'134.209.29.120:8080',
-	'http':'108.61.164.163:8080',
-	'http':'109.69.75.5:46347',
-	'http':'109.248.60.53:8081',
-	'http':'108.61.166.237:8080',
-	'http':'104.244.77.254:8080',
-	'http':'104.244.75.26:8080',
-	'http':'151.80.199.89:3128',
-	'http':'136.244.116.130:8080',
-	'http':'161.35.70.249:8080',
-	'http':'169.51.52.227:3128',
-	'http':'138.201.106.88:8080',
-	'http':'176.98.95.105:60342',
-	'http':'136.244.70.47:8080',
-	'http':'188.10.135.155:3128',
-	'http':'185.142.212.152:3128',
-	'http':'188.166.53.57:8080',
-	'http':'185.130.105.119:808',
-	'http':'185.199.84.161:53281',
-	'http':'185.130.105.119:65022',
-	'http':'185.130.105.119:65102',
-	'http':'185.137.232.95:80',
-	'http':'49.12.75.192:3128',
-	'http':'5.172.188.92:8080',
 }
 
 headers = {"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64;     x64; rv:66.0) Gecko/20100101 Firefox/66.0", "Accept-Encoding":"gzip, deflate",     "Accept":"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", "DNT":"1","Connection":"close", "Upgrade-Insecure-Requests":"1"}
 
+def get_connection(code):
+	if (len(code) == 10):
+		r = requests.get('https://www.amazon.com.br/gp/offer-listing/' + code + '/condition=new/ref=olp_f_primeEligible?f_freeShipping=true', headers=headers, proxies=proxies)
+	else:
+		r = requests.get(code, headers=headers, proxies=proxies)
+	
+	content = r.content
+	soup = BeautifulSoup(content, features="lxml")
+	r.close()
+
+	return soup
+
+def get_price(soup):
+	return str(soup.findAll('span', {'class':'a-offscreen'}))[-16:-8]
+
+def get_name(soup):
+	return str(soup.findAll('title', {'dir':'ltr'}))[50:-9]
+
+def url_fixer(url):
+	index = url.find('dp')
+	return 'https://www.amazon.com.br/' + url[index:index + 13]
+
+def file_check():
+	try:
+		open("links.txt", mode = 'r')
+		return 1
+	except:
+		return 0
+	
+VERSION = 1.5
 link_list = []
 codes = []
+qnt_items = 5
 
-class Teste:
-	VERSION = 1.4
-	def __init__(self):
-		pass
 
-def info(code):
-	r = requests.get('https://www.amazon.com.br/gp/offer-listing/' + code + '/condition=new/ref=olp_f_primeEligible?f_freeShipping=true', headers=headers, proxies=proxies)
-	content = r.content
-	soup = BeautifulSoup(content, features="lxml")
+print(VERSION)
+while True:
+	opc = int(input('\t1) Checar por disponibilidade.\n\t2) Adicionar novo link\n\t3) Remover link\n\t4) Pesquisar por nome\n\t5) Mostrar toda lista\n\t6) Limpar lista\n\t7) Configurações\n\t8) Fechar\n>> '))
 
-	price = str(soup.findAll('span', {'class':'a-offscreen'}))
-	name = str(soup.findAll('title', {'dir':'ltr'}))
-
-	return [r, name[50:-9], price[-16:-8]]
-
-inst = Teste
-print(inst.VERSION)
-opc = int(input('\t1) Checar por disponibilidade.\n\t2) Adicionar novo link\n\t3) Remover link\n\t4) Pesquisar por nome (em desenvolvimento)\n\t5) Limpar lista\n\t6) Debugger\n>> '))
-if (opc == 1):
-	with open("links.txt", mode = 'r') as file:
-		link_list = file.readlines()
-	codes = [link.strip()[-10:] for link in link_list]
-	link_list = [link.strip() for link in link_list]
-	for index, code in enumerate(codes):
-		title = info(code)
-		x = '.' * (50 - len(title[1]))
-
-		if 'não há ofertas de produto dentro destas condições' in title[0].text:
-			print(title[1] + x + ' - SEM ESTOQUE. (LINK: ' + link_list[index] + ')')
+	#checar por disponibilidade 
+	if (opc == 1):
+		if (file_check):
+			print("Arquivo 'links.txt' nao existe. Para criar acesse primeiramente a opção 2) ou 4)")
 		else:
-			print(title[1] + x + ' - EM ESTOQUE. PREÇO: ' + title[2] + ' (LINK: ' + link_list[index] + ')')
+			with open("links.txt", mode = 'r') as file:
+				link_list = file.readlines()
+			codes = [link.strip()[-10:] for link in link_list]
+			link_list = [link.strip() for link in link_list]
+			
+			if (len(codes) >= 1):
+				for index, code in enumerate(codes):
+					soup = get_connection(code)
+					spacement = '.' * (50 - len(get_name(soup)))
 
-		print('-------------')
+					if 'não há ofertas de produto dentro destas condições' in soup.text:
+						print(get_name(soup) + spacement + ' - SEM ESTOQUE. \t\n(LINK: ' + link_list[index] + ')\n')
+					else:
+						print(get_name(soup) + spacement + ' - EM ESTOQUE. PREÇO: ' + get_price(soup) + '\t\n(LINK: ' + link_list[index] + ')\n')
+
+			else:
+				print('A lista de links esta vazia.\n')
 		
-	title[0].close()
-	
-elif (opc == 2):
-	while (True):
-		link = input('Insira uma url: ')
-		if link[-1] == '/':
-			link = link[:-1]
-		elif len(link) != 40:
-			index = link.find('dp')
-			link = 'https://www.amazon.com.br/' + link[index:index + 13]
-		with open("links.txt", mode = 'a') as file:
-			file.write(link + '\n')
-			print('Link adicionado.')
+	#adicionar novo link
+	elif (opc == 2):
 		while (opc):
+			url = input('Insira uma url: ')
+			if url[-1] == '/':
+				url = url[:-1]
+			if len(url) != 40:
+				url = url_fixer(url)
+			with open("links.txt", mode = 'a+') as file:
+				file.write(url + '\n')
+				print('Link adicionado com sucesso.')
 			opc = int(input('Continuar adicionando?\n\t1 - Sim\n\t0 - Não\n> '))
-			if (opc == 1):
-				break
-			elif (opc != 1 and opc != 0):
-				print('Entrada invalida, tente novamente.\n')
-		if (not opc):
-			break
+			#CASO SEJA UM VALOR DIFERENTE DE 1 E 0
 
-elif (opc == 3):
-	with open("links.txt", "r") as file:
-		d = file.readlines()
-		d = [link.strip() for link in d]
-		file.seek(0)
-		if (len(d) >= 1):	
-			for line_no in range(0, len(d)):
-				print(str(line_no + 1) + ') ' + info(d[line_no][-10:])[1] + ' (LINK: ' + d[line_no] + ')')
-			lineRem = int(input('\nLinha a ser removida: '))
+	#remover link
+	elif (opc == 3):
+		if (file_check):
+			print("Arquivo 'links.txt' nao existe. Para criar acesse primeiramente a opção 2) ou 4)")
 		else:
-			print('Nao ha links')
-	with open("links.txt", 'w') as file:
-		for line in d:
-			if line.strip("\n") != d[lineRem - 1]:
-				file.write(line + '\n')
+			with open("links.txt", "r") as file:
+				d = file.readlines()
+				d = [link.strip() for link in d]
+				file.seek(0)
+				if (len(d) >= 1):	
+					for line_no in range(0, len(d)):
+						soup = get_connection(d[line_no][-10:])
+						print(str(line_no + 1) + ') ' + get_name(soup) + ' (LINK: ' + d[line_no] + ')')
+					lineRem = int(input('\nLinha a ser removida (para voltar insira 0): '))
+					if (lineRem > len(d) and lineRem != 0):
+						print(f'Valor invalido. Tente valores entre 1 e {len(d)}')
+					elif (lineRem > 0):
+						with open("links.txt", 'w') as file:
+							for line in d:
+								if line.strip("\n") != d[lineRem - 1]:
+									file.write(line + '\n')
+				else:
+					print('Nao ha links')
 
-elif (opc == 4):
-	search = input('Busca: ')
-	url = 'https://www.amazon.com.br/s?k=' + search.lower()
-	aux = 0
-	links = []
-	names = []
+	#pesquisar por nome
+	elif (opc == 4):
+		while True:
+			search = input('Busca: ')
+			url = 'https://www.amazon.com.br/s?k=' + search.lower()
+			links = []
+			names = []
+			aux = 0 
+			flag = 1
 
-	r = requests.get(url, headers=headers, proxies=proxies)
-	content = r.content
-	soup = BeautifulSoup(content, features="lxml")
+			while True:
+				soup = get_connection(url)
+				for d in soup.findAll('div', attrs={'class':'sg-col-4-of-12 sg-col-8-of-16 sg-col-16-of-24 sg-col-12-of-20 sg-col-24-of-32 sg-col sg-col-28-of-36 sg-col-20-of-28'}):
+					names.append(str(d.find('span', attrs={'class':'a-size-medium a-color-base a-text-normal'}))[66:-7])
+					index = str(d.find('a', attrs={'class':'a-link-normal a-text-normal'})).find('dp')
+					links.append('https://www.amazon.com.br/' + str(d.find('a', attrs={'class':'a-link-normal a-text-normal'}))[index:index + 13])
+					aux += 1
+					if (aux == qnt_items):
+						flag = 0
+						break
+				if (flag == 0):
+					break
 
-	print(soup)
+			for index, item in enumerate(names):
+				print(f'{index + 1}) {item}')
 
-	for d in soup.findAll('div', attrs={'class':'sg-col-4-of-12 sg-col-8-of-16 sg-col-16-of-24 sg-col-12-of-20 sg-col-24-of-32 sg-col sg-col-28-of-36 sg-col-20-of-28'}):
-		names.append(str(d.find('span', attrs={'class':'a-size-medium a-color-base a-text-normal'}))[66:-7])
-		index = str(d.find('a', attrs={'class':'a-link-normal a-text-normal'})).find('dp')
-		links.append('https://www.amazon.com.br/' + str(d.find('a', attrs={'class':'a-link-normal a-text-normal'}))[index:index + 13])
-		if (aux == 5):
-			break
-		aux += 1
-	
-	aux = 1
-	for item in names:
-		print(aux)
-		print(item)
-		aux += 1
+			while True:
+				num = int(input('\nItem a ser adicionado (0 > nova busca; -1 > voltar): '))
+				if (num > 0 and num <= qnt_items):
+					with open('links.txt', mode = 'a+') as file:
+						file.write(links[num - 1] + '\n')
+					break
+				elif (num > qnt_items or num < -1):
+					print(f'Valor inserido invalido (entre 1 e {qnt_items}), tente novamente.')
+				elif (num == 0 or num == -1):
+					break
+			if (num != 0):
+				break
 
-	num = int(input('Insira qual numero a ser adicionado: '))
+	#mostrar toda lista
+	elif (opc == 5):
+		if (file_check):
+			print("Arquivo 'links.txt' nao existe. Para criar acesse primeiramente a opção 2) ou 4)")
+		else:
+			with open("links.txt", mode = 'r') as file:
+				link_list = file.readlines()
+			codes = [link.strip()[-10:] for link in link_list]
+			for code in codes:
+				if (len(get_price(get_connection(code))) > 0):
+					print(f'{get_name(get_connection(code))} - {get_price(get_connection(code))}')
+				else:
+					print(f'{get_name(get_connection(code))}')
 
-	with open('links.txt', mode = 'a') as file:
-		file.write(links[num - 1] + '\n')
+	#limpar lista
+	elif (opc == 6):
+		with open('links.txt', mode = 'w') as file:
+			file.write('')
 
-	r.close()
-	
-elif (opc == 5):
-	with open('links.txt', mode = 'w') as file:
-		file.write('')
+	#configuracoes
+	elif(opc == 7):
+		qnt_items = int(input("Quantidade de items a ser procurada em '4) Pesquisar por nome': "))
 
-elif (opc == 6):
-	r = requests.get('https://www.amazon.com.br', headers=headers, proxies=proxies)
-	content = r.content
-	soup = BeautifulSoup(content, features="lxml")
+	#fechar
+	elif (opc == 8):
+		break
+
 
 
 #1.0 - basico x
@@ -168,4 +192,5 @@ elif (opc == 6):
 #1.2 - remover links x
 #1.3 - mostrar preco x
 #1.4 - pesquisar por nome x 
-#1.41 - testes usando classe
+#1.41 - fixes
+#1.5 - menu de configuracao, fechar e toda lista
